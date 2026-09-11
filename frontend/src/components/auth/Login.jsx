@@ -1,6 +1,6 @@
 import  { useState } from "react";
 import axios from "axios";
-import { useAuth } from "../../AuthContext";
+import { useAuth } from "../../useAuth";
 
 import { PageHeader, Box, Button } from "@primer/react";
 import "./auth.css";

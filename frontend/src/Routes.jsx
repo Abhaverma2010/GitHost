@@ -9,7 +9,7 @@ import Signup from "./components/auth/Signup";
 import CreateRepo from "./components/repo/CreateRepo";
 import RepoDetail from "./components/repo/RepoDetail";
 // Auth Context
-import { useAuth } from "./AuthContext";
+import { useAuth } from "./useAuth";
 
 const ProjectRoutes = () => {
   const { currentUser, setCurrentUser } = useAuth();

@@ -6,7 +6,7 @@ import Navbar from "../Navbar";
 import { UnderlineNav } from "@primer/react";
 import { BookIcon, RepoIcon } from "@primer/octicons-react";
 import HeatMapProfile from "./HeatMap";
-import { useAuth } from "../../AuthContext";
+import { useAuth } from "../../useAuth";
 
 const Profile = () => {
   const navigate = useNavigate();
