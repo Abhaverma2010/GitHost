@@ -74,7 +74,10 @@ const RepoDetail = () => {
         `http://localhost:3000/repo/${id}/issue/create`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
           body: JSON.stringify({ title, description }),
         }
       );
@@ -101,7 +104,10 @@ const RepoDetail = () => {
         `http://localhost:3000/issue/update/${issue._id}`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
           body: JSON.stringify({
             status: issue.status === "open" ? "closed" : "open",
           }),
@@ -120,7 +126,12 @@ const RepoDetail = () => {
     try {
       const response = await fetch(
         `http://localhost:3000/issue/delete/${issueId}`,
-        { method: "DELETE" }
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
       );
 
       if (!response.ok) return;

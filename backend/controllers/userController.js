@@ -122,6 +122,10 @@ async function updateUserProfile(req, res) {
   const currentID = req.params.id;
   const { email, password } = req.body;
 
+  if (currentID !== req.userId) {
+    return res.status(403).json({ message: "Not authorized" });
+  }
+
   try {
     await connectClient();
     const db = client.db("githubclone");
@@ -154,6 +158,10 @@ async function updateUserProfile(req, res) {
 
 async function deleteUserProfile(req, res) {
   const currentID = req.params.id;
+
+  if (currentID !== req.userId) {
+    return res.status(403).json({ message: "Not authorized" });
+  }
 
   try {
     await connectClient();

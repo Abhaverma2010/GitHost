@@ -13,8 +13,6 @@ const CreateRepo = () => {
     e.preventDefault();
     setError("");
 
-    const owner = localStorage.getItem("userId");
-
     if (!name.trim()) {
       setError("Repository name is required!");
       return;
@@ -23,9 +21,11 @@ const CreateRepo = () => {
     try {
       const response = await fetch("http://localhost:3000/repo/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
         body: JSON.stringify({
-          owner,
           name,
           description,
           visibility: isPublic ,

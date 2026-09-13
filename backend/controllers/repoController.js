@@ -4,7 +4,8 @@ const User = require("../models/userModel");
 const Issue = require("../models/issueModel");
 
 async function createRepository(req, res) {
-  const { owner, name, issues, content, description, visibility } = req.body;
+  const { name, issues, content, description, visibility } = req.body;
+  const owner = req.userId;
 
   try {
     if (!name) {
