@@ -28,8 +28,9 @@ const Dashboard = () => {
       try {
         const response = await fetch(`http://localhost:3000/repo/all`);
         const data = await response.json();
-        setSuggestedRepositories(data);
-        console.log(suggestedRepositories);
+        setSuggestedRepositories(
+          data.filter((repo) => String(repo.owner?._id ?? repo.owner) !== userId)
+        );
       } catch (err) {
         console.error("Error while fecthing repositories: ", err);
         setRepositories([]);

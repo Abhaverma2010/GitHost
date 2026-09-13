@@ -1,18 +1,35 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import Navbar from "../Navbar";
+import { useAuth } from "../../useAuth";
+import "./repo.css";
 
 const RepoDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+
   const [repository, setRepository] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
   const [issues, setIssues] = useState([]);
   const [issuesError, setIssuesError] = useState("");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [issueTitle, setIssueTitle] = useState("");
+  const [issueDescription, setIssueDescription] = useState("");
   const [issuesVersion, setIssuesVersion] = useState(0);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedDescription, setEditedDescription] = useState("");
+  const [repoActionError, setRepoActionError] = useState("");
+
+  const isOwner =
+    !!repository && String(repository.owner?._id ?? repository.owner) === String(currentUser);
+
+  const authHeaders = () => ({
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${localStorage.getItem("token")}`,
+  });
 
   useEffect(() => {
     const fetchRepository = async () => {
@@ -26,6 +43,7 @@ const RepoDetail = () => {
         }
 
         setRepository(data);
+        setEditedDescription(data.description || "");
       } catch (err) {
         console.error("Error fetching repository: ", err);
         setError("Server error. Please try again.");
@@ -64,7 +82,7 @@ const RepoDetail = () => {
     e.preventDefault();
     setIssuesError("");
 
-    if (!title.trim() || !description.trim()) {
+    if (!issueTitle.trim() || !issueDescription.trim()) {
       setIssuesError("Title and description are required.");
       return;
     }
@@ -74,11 +92,8 @@ const RepoDetail = () => {
         `http://localhost:3000/repo/${id}/issue/create`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify({ title, description }),
+          headers: authHeaders(),
+          body: JSON.stringify({ title: issueTitle, description: issueDescription }),
         }
       );
 
@@ -89,8 +104,8 @@ const RepoDetail = () => {
         return;
       }
 
-      setTitle("");
-      setDescription("");
+      setIssueTitle("");
+      setIssueDescription("");
       setIssuesVersion((v) => v + 1);
     } catch (err) {
       console.error("Error creating issue: ", err);
@@ -104,10 +119,7 @@ const RepoDetail = () => {
         `http://localhost:3000/issue/update/${issue._id}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          headers: authHeaders(),
           body: JSON.stringify({
             status: issue.status === "open" ? "closed" : "open",
           }),
@@ -128,9 +140,7 @@ const RepoDetail = () => {
         `http://localhost:3000/issue/delete/${issueId}`,
         {
           method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          headers: authHeaders(),
         }
       );
 
@@ -142,6 +152,82 @@ const RepoDetail = () => {
     }
   };
 
+  const handleSaveDescription = async (e) => {
+    e.preventDefault();
+    setRepoActionError("");
+
+    try {
+      const response = await fetch(`http://localhost:3000/repo/update/${id}`, {
+        method: "PUT",
+        headers: authHeaders(),
+        body: JSON.stringify({ description: editedDescription }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setRepoActionError(data.error || "Failed to update repository.");
+        return;
+      }
+
+      setRepository(data.repository);
+      setIsEditing(false);
+    } catch (err) {
+      console.error("Error updating repository: ", err);
+      setRepoActionError("Server error. Please try again.");
+    }
+  };
+
+  const handleToggleVisibility = async () => {
+    setRepoActionError("");
+
+    try {
+      const response = await fetch(`http://localhost:3000/repo/toggle/${id}`, {
+        method: "PATCH",
+        headers: authHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setRepoActionError(data.error || "Failed to toggle visibility.");
+        return;
+      }
+
+      setRepository(data.repository);
+    } catch (err) {
+      console.error("Error toggling visibility: ", err);
+      setRepoActionError("Server error. Please try again.");
+    }
+  };
+
+  const handleDeleteRepo = async () => {
+    if (!window.confirm(`Delete repository "${repository.name}"? This cannot be undone.`)) {
+      return;
+    }
+
+    setRepoActionError("");
+
+    try {
+      const response = await fetch(`http://localhost:3000/repo/delete/${id}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setRepoActionError(data.error || "Failed to delete repository.");
+        return;
+      }
+
+      navigate("/");
+    } catch (err) {
+      console.error("Error deleting repository: ", err);
+      setRepoActionError("Server error. Please try again.");
+    }
+  };
+
   return (
     <>
       <Navbar />
@@ -150,15 +236,45 @@ const RepoDetail = () => {
 
         {!loading && error && (
           <div>
-            <p style={{ color: "red" }}>{error}</p>
+            <p className="error-text">{error}</p>
             <Link to="/">Back to dashboard</Link>
           </div>
         )}
 
         {!loading && repository && (
-          <div>
-            <h2>{repository.name}</h2>
-            <p>{repository.description || "No description provided."}</p>
+          <div className="repo-detail-card">
+            <div className="repo-detail-header">
+              <h2>{repository.name}</h2>
+              {isOwner && (
+                <div className="repo-owner-actions">
+                  <button onClick={handleToggleVisibility}>
+                    Make {repository.visibility ? "Private" : "Public"}
+                  </button>
+                  <button onClick={() => setIsEditing((v) => !v)}>
+                    {isEditing ? "Cancel" : "Edit"}
+                  </button>
+                  <button className="danger-btn" onClick={handleDeleteRepo}>
+                    Delete
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {repoActionError && <p className="error-text">{repoActionError}</p>}
+
+            {isEditing ? (
+              <form className="edit-description-form" onSubmit={handleSaveDescription}>
+                <textarea
+                  value={editedDescription}
+                  onChange={(e) => setEditedDescription(e.target.value)}
+                  placeholder="Repository description"
+                />
+                <button type="submit">Save</button>
+              </form>
+            ) : (
+              <p>{repository.description || "No description provided."}</p>
+            )}
+
             <p>
               <strong>Visibility:</strong>{" "}
               {repository.visibility ? "Public" : "Private"}
@@ -168,18 +284,18 @@ const RepoDetail = () => {
             <div id="issues">
               <h3>Issues</h3>
 
-              {issuesError && <p style={{ color: "red" }}>{issuesError}</p>}
+              {issuesError && <p className="error-text">{issuesError}</p>}
 
-              <form onSubmit={handleCreateIssue}>
+              <form onSubmit={handleCreateIssue} className="new-issue-form">
                 <input
                   type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  value={issueTitle}
+                  onChange={(e) => setIssueTitle(e.target.value)}
                   placeholder="Issue title"
                 />
                 <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  value={issueDescription}
+                  onChange={(e) => setIssueDescription(e.target.value)}
                   placeholder="Describe the issue"
                 />
                 <button type="submit">New issue</button>
@@ -187,17 +303,27 @@ const RepoDetail = () => {
 
               {issues.length === 0 && <p>No issues yet.</p>}
 
-              <ul>
+              <ul className="issue-list">
                 {issues.map((issue) => (
-                  <li key={issue._id}>
-                    <strong>{issue.title}</strong> ({issue.status})
+                  <li key={issue._id} className="issue-item">
+                    <div className="issue-item-header">
+                      <strong>{issue.title}</strong>
+                      <span className={`issue-status issue-status-${issue.status}`}>
+                        {issue.status}
+                      </span>
+                    </div>
                     <p>{issue.description}</p>
-                    <button onClick={() => handleToggleStatus(issue)}>
-                      {issue.status === "open" ? "Close" : "Reopen"}
-                    </button>
-                    <button onClick={() => handleDeleteIssue(issue._id)}>
-                      Delete
-                    </button>
+                    <div className="issue-actions">
+                      <button onClick={() => handleToggleStatus(issue)}>
+                        {issue.status === "open" ? "Close" : "Reopen"}
+                      </button>
+                      <button
+                        className="danger-btn"
+                        onClick={() => handleDeleteIssue(issue._id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
