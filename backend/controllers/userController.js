@@ -1,42 +1,30 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const mongoose = require("mongoose");
-var ObjectId = require("mongodb").ObjectId;
-
-function usersCollection() {
-  return mongoose.connection.db.collection("users");
-}
+const User = require("../models/userModel");
 
 async function signup(req, res) {
   const { username, password, email } = req.body;
   try {
-    const collection = usersCollection();
-
-    const user = await collection.findOne({ username });
-    if (user) {
+    const existingUser = await User.findOne({ $or: [{ username }, { email }] });
+    if (existingUser) {
       return res.status(400).json({ message: "User already exists!" });
     }
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const newUser = {
+    const newUser = new User({
       username,
       password: hashedPassword,
       email,
-      repositories: [],
-      followedUsers: [],
-      starRepos: [],
-    };
+    });
 
-    const result = await collection.insertOne(newUser);
+    const result = await newUser.save();
 
-    const token = jwt.sign(
-      { id: result.insertedId },
-      process.env.JWT_SECRET_KEY,
-      { expiresIn: "1h" }
-    );
-    res.json({ token, userId: result.insertedId });
+    const token = jwt.sign({ id: result._id }, process.env.JWT_SECRET_KEY, {
+      expiresIn: "1h",
+    });
+    res.json({ token, userId: result._id });
   } catch (err) {
     console.error("Error during signup : ", err.message);
     res.status(500).send("Server error");
@@ -46,9 +34,7 @@ async function signup(req, res) {
 async function login(req, res) {
   const { email, password } = req.body;
   try {
-    const collection = usersCollection();
-
-    const user = await collection.findOne({ email });
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials!" });
     }
@@ -70,9 +56,7 @@ async function login(req, res) {
 
 async function getAllUsers(req, res) {
   try {
-    const collection = usersCollection();
-
-    const users = await collection.find({}).toArray();
+    const users = await User.find({});
     res.json(users);
   } catch (err) {
     console.error("Error during fetching : ", err.message);
@@ -84,11 +68,7 @@ async function getUserProfile(req, res) {
   const currentID = req.params.id;
 
   try {
-    const collection = usersCollection();
-
-    const user = await collection.findOne({
-      _id: new ObjectId(currentID),
-    });
+    const user = await User.findById(currentID);
 
     if (!user) {
       return res.status(404).json({ message: "User not found!" });
@@ -110,27 +90,23 @@ async function updateUserProfile(req, res) {
   }
 
   try {
-    const collection = usersCollection();
-
-    let updateFields = { email };
+    const updateFields = { email };
     if (password) {
       const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password, salt);
-      updateFields.password = hashedPassword;
+      updateFields.password = await bcrypt.hash(password, salt);
     }
 
-    const result = await collection.findOneAndUpdate(
-      {
-        _id: new ObjectId(currentID),
-      },
+    const updatedUser = await User.findByIdAndUpdate(
+      currentID,
       { $set: updateFields },
-      { returnDocument: "after" }
+      { new: true }
     );
-    if (!result.value) {
+
+    if (!updatedUser) {
       return res.status(404).json({ message: "User not found!" });
     }
 
-    res.send(result.value);
+    res.send(updatedUser);
   } catch (err) {
     console.error("Error during updating : ", err.message);
     res.status(500).send("Server error!");
@@ -145,13 +121,9 @@ async function deleteUserProfile(req, res) {
   }
 
   try {
-    const collection = usersCollection();
+    const deletedUser = await User.findByIdAndDelete(currentID);
 
-    const result = await collection.deleteOne({
-      _id: new ObjectId(currentID),
-    });
-
-    if (result.deleteCount == 0) {
+    if (!deletedUser) {
       return res.status(404).json({ message: "User not found!" });
     }
 
