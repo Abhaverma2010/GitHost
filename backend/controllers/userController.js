@@ -1,29 +1,18 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const { MongoClient } = require("mongodb");
-const dotenv = require("dotenv");
+const mongoose = require("mongoose");
 var ObjectId = require("mongodb").ObjectId;
 
-dotenv.config();
-const uri = process.env.MONGODB_URI;
-
-let client;
-
-async function connectClient() {
-  if (!client) {
-    client = new MongoClient(uri);
-    await client.connect();
-  }
+function usersCollection() {
+  return mongoose.connection.db.collection("users");
 }
 
 async function signup(req, res) {
   const { username, password, email } = req.body;
   try {
-    await connectClient();
-    const db = client.db("githubclone");
-    const usersCollection = db.collection("users");
+    const collection = usersCollection();
 
-    const user = await usersCollection.findOne({ username });
+    const user = await collection.findOne({ username });
     if (user) {
       return res.status(400).json({ message: "User already exists!" });
     }
@@ -40,7 +29,7 @@ async function signup(req, res) {
       starRepos: [],
     };
 
-    const result = await usersCollection.insertOne(newUser);
+    const result = await collection.insertOne(newUser);
 
     const token = jwt.sign(
       { id: result.insertedId },
@@ -57,11 +46,9 @@ async function signup(req, res) {
 async function login(req, res) {
   const { email, password } = req.body;
   try {
-    await connectClient();
-    const db = client.db("githubclone");
-    const usersCollection = db.collection("users");
+    const collection = usersCollection();
 
-    const user = await usersCollection.findOne({ email });
+    const user = await collection.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials!" });
     }
@@ -83,11 +70,9 @@ async function login(req, res) {
 
 async function getAllUsers(req, res) {
   try {
-    await connectClient();
-    const db = client.db("githubclone");
-    const usersCollection = db.collection("users");
+    const collection = usersCollection();
 
-    const users = await usersCollection.find({}).toArray();
+    const users = await collection.find({}).toArray();
     res.json(users);
   } catch (err) {
     console.error("Error during fetching : ", err.message);
@@ -99,11 +84,9 @@ async function getUserProfile(req, res) {
   const currentID = req.params.id;
 
   try {
-    await connectClient();
-    const db = client.db("githubclone");
-    const usersCollection = db.collection("users");
+    const collection = usersCollection();
 
-    const user = await usersCollection.findOne({
+    const user = await collection.findOne({
       _id: new ObjectId(currentID),
     });
 
@@ -127,9 +110,7 @@ async function updateUserProfile(req, res) {
   }
 
   try {
-    await connectClient();
-    const db = client.db("githubclone");
-    const usersCollection = db.collection("users");
+    const collection = usersCollection();
 
     let updateFields = { email };
     if (password) {
@@ -138,7 +119,7 @@ async function updateUserProfile(req, res) {
       updateFields.password = hashedPassword;
     }
 
-    const result = await usersCollection.findOneAndUpdate(
+    const result = await collection.findOneAndUpdate(
       {
         _id: new ObjectId(currentID),
       },
@@ -164,11 +145,9 @@ async function deleteUserProfile(req, res) {
   }
 
   try {
-    await connectClient();
-    const db = client.db("githubclone");
-    const usersCollection = db.collection("users");
+    const collection = usersCollection();
 
-    const result = await usersCollection.deleteOne({
+    const result = await collection.deleteOne({
       _id: new ObjectId(currentID),
     });
 
