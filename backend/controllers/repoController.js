@@ -4,7 +4,8 @@ const User = require("../models/userModel");
 const Issue = require("../models/issueModel");
 
 async function createRepository(req, res) {
-  const { owner, name, issues, content, description, visibility } = req.body;
+  const { name, issues, content, description, visibility } = req.body;
+  const owner = req.userId;
 
   try {
     if (!name) {
@@ -52,9 +53,13 @@ async function getAllRepositories(req, res) {
 async function fetchRepositoryById(req, res) {
   const { id } = req.params;
   try {
-    const repository = await Repository.find({ _id: id })
+    const repository = await Repository.findById(id)
       .populate("owner")
       .populate("issues");
+
+    if (!repository) {
+      return res.status(404).json({ error: "Repository not found!" });
+    }
 
     res.json(repository);
   } catch (err) {
@@ -78,17 +83,11 @@ async function fetchRepositoryByName(req, res) {
 }
 
 async function fetchRepositoriesForCurrentUser(req, res) {
-  console.log(req.params);
   const { userID } = req.params;
 
   try {
     const repositories = await Repository.find({ owner: userID });
 
-    // if (!repositories || repositories.length == 0) {
-    //   return res.status(404).json({ error: "User Repositories not found!" });
-    // }
-    res.json({ message: "Repositories found!", repositories });
-    console.log(repositories);
     res.json({ message: "Repositories found!", repositories });
   } catch (err) {
     console.error("Error during fetching user repositories : ", err.message);
@@ -106,8 +105,8 @@ async function updateRepositoryById(req, res) {
       return res.status(404).json({ error: "Repository not found!" });
     }
 
-    repository.content.push(content);
-    repository.description = description;
+    if (content !== undefined) repository.content.push(content);
+    if (description !== undefined) repository.description = description;
 
     const updatedRepository = await repository.save();
 
