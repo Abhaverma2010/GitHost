@@ -1,6 +1,7 @@
 import  { useState } from "react";
 import axios from "axios";
 import { useAuth } from "../../useAuth";
+import { API_BASE_URL } from "../../api";
 
 import { PageHeader, Box, Button } from "@primer/react";
 import "./auth.css";
@@ -25,7 +26,7 @@ const Login = () => {
 
     try {
       setLoading(true);
-      const res = await axios.post("http://localhost:3000/login", {
+      const res = await axios.post(`${API_BASE_URL}/login`, {
         email: email,
         password: password,
       });
