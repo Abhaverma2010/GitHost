@@ -2,6 +2,7 @@ import  { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import "./dashboard.css";
 import Navbar from "../Navbar";
+import { API_BASE_URL } from "../../api";
 
 const Dashboard = () => {
   const [repositories, setRepositories] = useState([]);
@@ -15,7 +16,7 @@ const Dashboard = () => {
     const fetchRepositories = async () => {
       try {
         const response = await fetch(
-          `http://localhost:3000/repo/user/${userId}`
+          `${API_BASE_URL}/repo/user/${userId}`
         );
         const data = await response.json();
         setRepositories(data.repositories);
@@ -26,7 +27,7 @@ const Dashboard = () => {
 
     const fetchSuggestedRepositories = async () => {
       try {
-        const response = await fetch(`http://localhost:3000/repo/all`);
+        const response = await fetch(`${API_BASE_URL}/repo/all`);
         const data = await response.json();
         setSuggestedRepositories(
           data.filter((repo) => String(repo.owner?._id ?? repo.owner) !== userId)

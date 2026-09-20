@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import Navbar from "../Navbar";
 import { useAuth } from "../../useAuth";
+import { API_BASE_URL } from "../../api";
 import "./repo.css";
 
 const RepoDetail = () => {
@@ -34,7 +35,7 @@ const RepoDetail = () => {
   useEffect(() => {
     const fetchRepository = async () => {
       try {
-        const response = await fetch(`http://localhost:3000/repo/${id}`);
+        const response = await fetch(`${API_BASE_URL}/repo/${id}`);
         const data = await response.json();
 
         if (!response.ok) {
@@ -59,7 +60,7 @@ const RepoDetail = () => {
     const fetchIssues = async () => {
       try {
         const response = await fetch(
-          `http://localhost:3000/repo/${id}/issue/all`
+          `${API_BASE_URL}/repo/${id}/issue/all`
         );
         const data = await response.json();
 
@@ -89,7 +90,7 @@ const RepoDetail = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:3000/repo/${id}/issue/create`,
+        `${API_BASE_URL}/repo/${id}/issue/create`,
         {
           method: "POST",
           headers: authHeaders(),
@@ -116,7 +117,7 @@ const RepoDetail = () => {
   const handleToggleStatus = async (issue) => {
     try {
       const response = await fetch(
-        `http://localhost:3000/issue/update/${issue._id}`,
+        `${API_BASE_URL}/issue/update/${issue._id}`,
         {
           method: "PUT",
           headers: authHeaders(),
@@ -137,7 +138,7 @@ const RepoDetail = () => {
   const handleDeleteIssue = async (issueId) => {
     try {
       const response = await fetch(
-        `http://localhost:3000/issue/delete/${issueId}`,
+        `${API_BASE_URL}/issue/delete/${issueId}`,
         {
           method: "DELETE",
           headers: authHeaders(),
@@ -157,7 +158,7 @@ const RepoDetail = () => {
     setRepoActionError("");
 
     try {
-      const response = await fetch(`http://localhost:3000/repo/update/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/repo/update/${id}`, {
         method: "PUT",
         headers: authHeaders(),
         body: JSON.stringify({ description: editedDescription }),
@@ -182,7 +183,7 @@ const RepoDetail = () => {
     setRepoActionError("");
 
     try {
-      const response = await fetch(`http://localhost:3000/repo/toggle/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/repo/toggle/${id}`, {
         method: "PATCH",
         headers: authHeaders(),
       });
@@ -209,7 +210,7 @@ const RepoDetail = () => {
     setRepoActionError("");
 
     try {
-      const response = await fetch(`http://localhost:3000/repo/delete/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/repo/delete/${id}`, {
         method: "DELETE",
         headers: authHeaders(),
       });
