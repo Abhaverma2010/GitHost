@@ -1,5 +1,8 @@
 # GitHost
 
+**Live demo:** https://main.dpiupn7eripuj.amplifyapp.com
+**Backend API:** https://16.171.155.127.sslip.io
+
 A MERN-stack GitHub-style web app — repositories, issues, and JWT-secured ownership controls — paired with a small **version-control engine built from scratch** as a separate command-line tool.
 
 This is two related pieces, and they are **not connected to each other yet**:
